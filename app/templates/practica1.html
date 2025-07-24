@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Práctica PID - Control de nivel de líquidos</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-100 text-gray-800 p-6">
+  <div class="max-w-6xl mx-auto">
+    <h1 class="text-3xl font-bold text-center mb-6">🧪 Práctica P1: Control de nivel de líquidos</h1>
+
+<section class="bg-white p-6 rounded-lg shadow mb-8">
+  <h2 class="text-xl font-bold mb-4">1. Introducción</h2>
+  <p class="mb-4">
+    Esta práctica tiene como objetivo el estudio y control de una planta de tipo hidráulico formada por un tanque cuyo nivel de líquido debe mantenerse estable mediante un sistema de regulación automática. El control se realiza utilizando un algoritmo PID (Proporcional, Integral, Derivativo), ajustando sus parámetros para conseguir un comportamiento deseado del sistema.
+  </p>
+
+  <p class="mb-4">
+    Esta plataforma representa una alternativa a la práctica tradicional en el laboratorio físico, permitiendo experimentar con un modelo matemático equivalente del sistema. Mediante esta simulación virtual, se reproduce el comportamiento dinámico de un tanque con entrada y salida de caudal, de manera que se puede observar cómo evoluciona el nivel en función de las acciones del controlador.
+  </p>
+
+  <p class="mb-4">
+    En este entorno, se han configurado previamente los parámetros físicos de la planta según lo establecido por el profesor. En concreto:
+  </p>
+  <ul class="list-disc list-inside mb-4">
+    <li><strong>R (Resistencia hidráulica)</strong>: {{ r_planta }} — Representa la dificultad al paso del líquido por la salida.</li>
+    <li><strong>C (Capacidad del depósito)</strong>: {{ c_planta }} — Representa la capacidad de almacenar líquido en función del área del tanque.</li>
+  </ul>
+
+  <p class="mb-4">
+    Estos valores afectan directamente al comportamiento del sistema: a mayor resistencia, el líquido tarda más en salir, y a mayor capacidad, el sistema reacciona más lentamente a los cambios. Por tanto, el diseño del controlador PID debe tener en cuenta estas características.
+  </p>
+
+  <p class="mb-4">
+    Además, el criterio para considerar que el sistema está estabilizado ha sido definido también por el profesor. En esta práctica, se considerará que el sistema está estabilizado cuando el nivel de líquido se mantenga dentro de un margen de ±<strong>{{ error_permitido }} mm</strong> respecto a la consigna, durante al menos <strong>{{ tiempo_establecido }} segundos</strong>.
+  </p>
+
+  <p class="mb-4">
+    A través de esta interfaz, los alumnos podrán experimentar con diferentes combinaciones de los parámetros del controlador, observar su efecto sobre el comportamiento del sistema y analizar indicadores de rendimiento como el <em>sobredisparo</em>, el <em>error en régimen permanente</em> y el <em>tiempo de establecimiento</em>.
+  </p>
+
+  <p class="mb-4">
+    Esta simulación no solo facilita la comprensión del control automático en sistemas físicos reales, sino que también permite repetir ensayos sin riesgo, comparar resultados y entender cómo pequeños ajustes en los parámetros pueden modificar drásticamente la estabilidad del sistema.
+  </p>
+</section>
+
+
+<section class="bg-white p-6 rounded-lg shadow mb-8">
+  <h2 class="text-xl font-bold mb-4">2. Descripción del sistema</h2>
+
+  <p class="mb-4">
+    El sistema físico que se simula en esta práctica está basado en un depósito de nivel con entrada y salida de líquido. La entrada de líquido está controlada por una bomba cuyo caudal es proporcional a la señal de control. La salida se realiza a través de una válvula que impone una resistencia hidráulica, generando una dinámica que puede modelarse mediante una ecuación diferencial de primer orden.
+  </p>
+
+  <p class="mb-4">
+    En la siguiente imagen se muestra el esquema funcional de la planta utilizada para el modelado:
+  </p>
+
+  <div class="flex justify-center my-6">
+    <img src="/static/images/practica1.PNG" alt="Esquema de la planta de nivel" class="max-w-full h-auto rounded shadow">
+  </div>
+
+  <p class="mb-4">
+    En esta representación:
+  </p>
+  <ul class="list-disc list-inside mb-4">
+    <li><strong>q<sub>i</sub></strong> representa el caudal de entrada al tanque, generado por la bomba proporcional.</li>
+    <li><strong>h(t)</strong> es la altura del líquido en el tanque, es la variable que queremos controlar.</li>
+    <li><strong>R</strong> es la resistencia hidráulica en la salida, que modela la dificultad del fluido para salir del tanque.</li>
+    <li><strong>C</strong> es la capacidad del sistema, relacionada con la sección transversal del tanque.</li>
+  </ul>
+
+  <p class="mb-4">
+    A partir de este modelo se obtiene un sistema de primer orden cuya constante de tiempo está definida por el producto <strong>R·C</strong>. Este valor determina la rapidez con la que el sistema responde a los cambios. Un controlador PID se encarga de regular la entrada de caudal de forma que el nivel del líquido siga una consigna predefinida, minimizando errores, evitando oscilaciones y mejorando la estabilidad.
+  </p>
+</section>
+
+
+
+    <section class="grid md:grid-cols-2 gap-6 mb-8">
+      <div class="bg-white p-6 rounded-lg shadow">
+        <h2 class="text-lg font-bold mb-4">🎛️ Parámetros del Controlador PID</h2>
+
+        <label class="block mb-2">Nivel inicial (mm): <span id="nivel_inicialValue">0</span>
+          <input type="range" id="nivel_inicial" min="0" max="100" value="0" class="w-full">
+        </label>
+        <label class="block mb-2">Consigna (mm): <span id="setpointValue">0</span>
+          <input type="range" id="setpoint" min="0" max="100" value="0" class="w-full">
+        </label>
+        <label class="block mb-2">Kp: <span id="kpValue">0</span>
+          <input type="range" id="kp" min="0" max="10" step="0.1" value="0" class="w-full">
+        </label>
+        <label class="block mb-2">Ki: <span id="kiValue">0</span>
+          <input type="range" id="ki" min="0" max="10" step="0.1" value="0" class="w-full">
+        </label>
+        <label class="block mb-4">Kd: <span id="kdValue">0</span>
+          <input type="range" id="kd" min="0" max="10" step="0.1" value="0" class="w-full">
+        </label>
+
+      <div class="flex gap-4 items-center">
+        <button id="btnSimular" class="bg-blue-600 text-white px-4 py-2 rounded">Simular</button>
+        <button id="btnParar" class="bg-red-500 text-white px-4 py-2 rounded">Parar</button>
+        <span id="estadoSimulacion" class="ml-4 text-sm font-semibold text-gray-600"></span>
+      </div>
+
+      </div>
+<div class="bg-white p-6 rounded-lg shadow flex items-center justify-center gap-6">
+  <svg width="100" height="300">
+    <rect x="30" y="10" width="40" height="280" fill="#ccc" stroke="#333" stroke-width="2"/>
+    <rect id="nivelRect" x="30" y="290" width="40" height="0" fill="#3b82f6"/>
+  </svg>
+  <div class="text-center">
+    <p class="text-sm text-gray-500">Nivel actual</p>
+    <p id="nivelDisplay" class="text-2xl font-bold text-blue-600">0 mm</p>
+  </div>
+</div>
+
+    </section>
+
+    <!-- Gráfico -->
+    <section class="bg-white p-6 rounded-lg shadow mb-8">
+      <canvas id="grafico"></canvas>
+    </section>
+
+    <!-- Métricas -->
+    <section class="bg-white p-6 rounded-lg shadow">
+      <h3 class="text-lg font-bold mb-2">📈 Parámetros de rendimiento</h3>
+      <ul class="list-disc pl-6 space-y-1">
+        <li class="text-blue-600">Nivel actual: <span id="currentValue">--</span> mm</li>
+        <li class="text-blue-600">Diferencia actual con la consigna: <span id="diffWithSetpoint">--</span> mm</li>
+        <li class="text-green-700 font-semibold">Sobreeshoot: <span id="overshoot">--</span> mm</li>
+        <li class="text-green-700 font-semibold">Tiempo de establecimiento: <span id="settlingTime">--</span> s</li>
+        <li>Error en régimen: <span id="steadyError">--</span> mm</li>
+      </ul>
+    </section>
+
+  </div>
+
+  <!-- Footer -->
+  <footer class="mt-10 text-center text-sm text-gray-500">
+    Powered by <strong>Nubetiza</strong>
+  </footer>
+
+  <script>
+    const estadoSimulacion = document.getElementById('estadoSimulacion');
+    const chart = new Chart(document.getElementById('grafico').getContext('2d'), {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [
+          { label: 'Nivel (mm)', data: [], borderColor: 'blue', fill: false },
+          { label: 'Setpoint', data: [], borderColor: 'red', borderDash: [5, 5], fill: false }
+        ]
+      },
+      options: {
+        responsive: true,
+        animation: false,
+        scales: { y: { min: 0, max: 100 } }
+      }
+    });
+
+    const nivelRect = document.getElementById('nivelRect');
+    let ws;
+    let intervalo;
+    let maxNivel = 0;
+    let dentroMargenCounter = 0;
+    let umbralEstablecimiento = 40;
+
+    function actualizarValoresSliders() {
+      const ids = ['nivel_inicial', 'setpoint', 'kp', 'ki', 'kd'];
+      ids.forEach(id => {
+        document.getElementById(id).addEventListener('input', () => {
+          document.getElementById(id + 'Value').textContent = document.getElementById(id).value;
+        });
+      });
+    }
+
+    actualizarValoresSliders();
+
+    document.getElementById('btnSimular').onclick = () => {
+      chart.data.labels = [];
+      chart.data.datasets[0].data = [];
+      chart.data.datasets[1].data = [];
+      chart.update();
+      // Calcular sobredisparo dinámico respecto a la consigna
+
+      
+      const nivel_inicial = parseFloat(document.getElementById('nivel_inicial').value);
+
+      let overshoot = 0;
+      let maxNivelSubida = nivel_inicial;
+      let minNivelBajada = nivel_inicial;
+      let dentroMargenCounter = 0;
+      document.getElementById("overshoot").textContent = "--"; // Reinicio visu
+
+
+      if (ws) ws.close();
+
+      ws = new WebSocket(`ws://${location.host}/ws/pid`);
+      ws.onopen = () => {
+        estadoSimulacion.textContent = "Simulando...";
+        estadoSimulacion.classList.remove("text-green-600");
+        estadoSimulacion.classList.add("text-yellow-600");
+
+        const datos = {
+          iniciar: true,
+          nivel_inicial: parseFloat(document.getElementById('nivel_inicial').value),
+          setpoint: parseFloat(document.getElementById('setpoint').value),
+          kp: parseFloat(document.getElementById('kp').value),
+          ki: parseFloat(document.getElementById('ki').value),
+          kd: parseFloat(document.getElementById('kd').value)
+        };
+        ws.send(JSON.stringify(datos));
+        intervalo = setInterval(() => ws.send(JSON.stringify({})), 100);
+      };
+
+ws.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+
+  // Si es configuración del servidor
+    if (data.config) {
+      if (typeof data.config.error_permitido === "number") {
+        errorPermitido = data.config.error_permitido;
+      }
+      if (typeof data.config.tiempo_establecido === "number") {
+        tiempoEstablecido = data.config.tiempo_establecido;
+        umbralEstablecimiento = Math.ceil(tiempoEstablecido / 0.1);
+      }
+
+      console.log("📥 Configuración recibida del servidor:");
+      console.log("Error permitido:", errorPermitido);
+      console.log("Tiempo establecido (s):", tiempoEstablecido);
+      console.log("Umbral de establecimiento:", umbralEstablecimiento);
+      return;
+    }
+
+  // Si no hay nivel, salimos
+  if (typeof data.nivel !== "number") return;
+
+  const nivel = data.nivel;
+  const sp = parseFloat(document.getElementById('setpoint').value);
+
+  document.getElementById("currentValue").textContent = nivel.toFixed(2);
+  document.getElementById("diffWithSetpoint").textContent = (nivel - sp).toFixed(2);
+  document.getElementById("steadyError").textContent = (nivel - sp).toFixed(2);
+
+  if (nivel_inicial < sp) {
+    if (nivel > maxNivelSubida) maxNivelSubida = nivel;
+    document.getElementById("overshoot").textContent = (Math.max(0, maxNivelSubida - sp)).toFixed(2);
+  } else {
+    if (nivel < minNivelBajada) minNivelBajada = nivel;
+    document.getElementById("overshoot").textContent = (Math.max(0, sp - minNivelBajada)).toFixed(2);
+  }
+
+  chart.data.labels.push('');
+  chart.data.datasets[0].data.push(nivel);
+  chart.data.datasets[1].data.push(sp);
+  chart.update();
+
+  nivelRect.setAttribute("y", 290 - (nivel * 2.8));
+  nivelRect.setAttribute("height", nivel * 2.8);
+  document.getElementById("nivelDisplay").textContent = `${nivel.toFixed(1)} mm`;
+
+  if (nivel > maxNivel) maxNivel = nivel;
+
+  if (Math.abs(nivel - sp) < errorPermitido) {
+    dentroMargenCounter++;
+    if (dentroMargenCounter >= umbralEstablecimiento) {
+      estadoSimulacion.textContent = "Estabilizado ✅";
+      estadoSimulacion.classList.remove("text-yellow-600");
+      estadoSimulacion.classList.add("text-green-600");
+
+      ws.close();
+      document.getElementById("settlingTime").textContent = (chart.data.labels.length * 0.1).toFixed(2);
+    }
+  } else {
+    dentroMargenCounter = 0;
+  }
+};
+
+      ws.onclose = () => clearInterval(intervalo);
+    };
+
+    document.getElementById('btnParar').onclick = () => {
+      estadoSimulacion.textContent = "";
+      estadoSimulacion.classList.remove("text-yellow-600", "text-green-600");
+
+      if (ws) ws.close();
+    };
+  </script>
+</body>
+</html>

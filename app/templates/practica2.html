@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Práctica 2 - Control de Temperatura</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+</head>
+<body class="bg-gray-100 text-gray-800 p-6">
+
+  <div class="max-w-6xl mx-auto">
+
+    <!-- Título -->
+    <h1 class="text-3xl font-bold text-center text-gray-800 mb-2">Práctica 2: Control de Temperatura</h1>
+    <p class="text-center text-gray-600 mb-6">Simulación del sistema térmico con control PID</p>
+
+    <!-- Introducción -->
+    <section class="bg-white p-6 rounded-lg shadow mb-8">
+      <h2 class="text-xl font-bold mb-4">1. Introducción</h2>
+      <p class="mb-4">
+        En esta práctica se simula el comportamiento térmico de una planta con calefacción controlada mediante un sistema PID. El objetivo es ajustar el controlador para que la temperatura alcance y se mantenga estable en una consigna deseada.
+      </p>
+      <p class="mb-4">
+        El modelo térmico se basa en una resistencia térmica (R) y una capacidad térmica (C), con un retardo asociado al calentamiento del sistema. Esta planta se ha configurado por el profesor con los siguientes valores:
+      </p>
+      <ul class="list-disc list-inside mb-4 text-gray-700">
+        <li><strong>Resistencia térmica (R):</strong> {{ r_planta }} °C/W</li>
+        <li><strong>Capacidad térmica (C):</strong> {{ c_planta }} J/°C</li>
+        <li><strong>Retardo (τ):</strong> {{ retardo }} s</li>
+        <li><strong>Ganancia estática del sistema:</strong> {{ ganancia }}</li>
+        <li><strong>Error permitido para estabilización:</strong> ±{{ error_permitido_temp }} °C</li>
+        <li><strong>Tiempo requerido de estabilidad:</strong> {{ tiempo_establecido_temp }} segundos continuos</li>
+      </ul>
+      <p class="mb-4">
+        Esta plataforma de simulación sustituye a la práctica de laboratorio, permitiendo probar configuraciones del controlador PID en tiempo real y visualizar gráficamente el comportamiento del sistema térmico.
+      </p>
+    </section>
+
+    <!-- Imagen -->
+    <section class="bg-white p-6 rounded-lg shadow mb-8">
+  <div class="bg-white p-6 rounded-xl shadow-md space-y-6">
+      <h2 class="text-xl font-bold mb-4">2. Esquema y descripción de la planta</h2>
+
+  <p>
+    La planta de control de temperatura simulada representa una cámara térmica controlada mediante una bombilla (fuente de calor) y mecanismos de refrigeración (ventilador y aleta). El objetivo es alcanzar y mantener una temperatura deseada, simulando el comportamiento real del módulo físico de referencia (<strong>Ref. 734121</strong>).
+  </p>
+
+  <h3 class="text-xl font-semibold mt-4"> Elementos principales:</h3>
+  <ul class="list-disc list-inside ml-4">
+    <li><strong>Fuente de calor:</strong> Una bombilla que eleva la temperatura al aplicarle una señal de control (voltaje).</li>
+    <li><strong>Refrigeración:</strong> Se regula con un ventilador y una aleta de flujo de aire.</li>
+    <li><strong>Sensor de temperatura:</strong> Proporciona una señal proporcional a la temperatura (1V / 10°C).</li>
+    <li><strong>Controlador:</strong> Se pueden aplicar control TODO-NADA o PID.</li>
+  </ul>
+
+  <h2 class="text-2xl font-bold mt-6">Modelo matemático de la planta</h2>
+
+  <h3 class="text-xl font-semibold mt-4">Ecuaciones fundamentales:</h3>
+  <div class="space-y-2">
+    <p><strong>Transferencia de calor:</strong></p>
+    <pre class="bg-gray-100 p-2 rounded-md overflow-x-auto">θ = α · ΔT</pre>
+
+    <p><strong>Resistencia térmica:</strong></p>
+    <pre class="bg-gray-100 p-2 rounded-md overflow-x-auto">R = ΔT / θ</pre>
+
+    <p><strong>Capacidad térmica:</strong></p>
+    <pre class="bg-gray-100 p-2 rounded-md overflow-x-auto">C = θ / (d(ΔT)/dt)</pre>
+
+    <p><strong>Ecuación del sistema combinada:</strong></p>
+    <pre class="bg-gray-100 p-2 rounded-md overflow-x-auto">θ = C · d(ΔT)/dt + (1/R) · ΔT</pre>
+
+    <p><strong>Función de transferencia del sistema:</strong></p>
+    <pre class="bg-gray-100 p-2 rounded-md overflow-x-auto">ΔT(s)/θ(s) = R / (RCs + 1)</pre>
+
+    <p><strong>Modelo con retardo:</strong></p>
+    <pre class="bg-gray-100 p-2 rounded-md overflow-x-auto">ΔT(s)/V(s) = (K / (τs + 1)) · e^(-td·s)</pre>
+  </div>
+
+  <p class="text-sm text-gray-600 italic mt-2">
+    Donde: K es la ganancia del sistema, τ la constante de tiempo, td el retardo de transporte, y V(s) la entrada (voltaje aplicado).
+  </p>
+
+  <h3 class="text-xl font-semibold mt-6">📈 Respuesta al escalón:</h3>
+  <pre class="bg-gray-100 p-2 rounded-md overflow-x-auto">
+T(t) = (Tf - Ti) · (1 - e^(-(t - td)/τ)) + Ti, para t ≥ td
+  </pre>
+
+  <p>
+    Esta ecuación representa cómo evoluciona la temperatura de la cámara desde un valor inicial <code>Ti</code> hasta el valor final <code>Tf</code>, con un cierto retardo <code>td</code> y una velocidad de respuesta determinada por <code>τ</code>.
+  </p>
+
+
+</div>
+
+    </section>
+
+<!-- Simulación -->
+<section class="bg-white p-6 rounded-lg shadow mb-8">
+  <h2 class="text-xl font-bold mb-4">3. Simulación del sistema</h2>
+  
+  <!-- Controles -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+    <div>
+      <label for="temperatura_inicial" class="block font-semibold">🌡️ Temperatura inicial (°C): <span id="temperatura_inicialValue">20</span></label>
+      <input id="temperatura_inicial" type="range" min="0" max="100" step="1" value="20" class="w-full">
+    </div>
+    <div>
+      <label for="setpoint_temp" class="block font-semibold">🎯 Consigna (°C): <span id="setpoint_tempValue">60</span></label>
+      <input id="setpoint_temp" type="range" min="0" max="100" step="1" value="60" class="w-full">
+    </div>
+    <div>
+      <label for="kp_temp" class="block font-semibold">🧪 Kp: <span id="kp_tempValue">1</span></label>
+      <input id="kp_temp" type="range" min="0" max="10" step="0.1" value="1" class="w-full">
+    </div>
+    <div>
+      <label for="ki_temp" class="block font-semibold">🧪 Ki: <span id="ki_tempValue">0</span></label>
+      <input id="ki_temp" type="range" min="0" max="5" step="0.1" value="0" class="w-full">
+    </div>
+    <div>
+      <label for="kd_temp" class="block font-semibold">🧪 Kd: <span id="kd_tempValue">0</span></label>
+      <input id="kd_temp" type="range" min="0" max="5" step="0.1" value="0" class="w-full">
+    </div>
+  </div>
+
+  <!-- Botones -->
+  <div class="flex gap-4 mb-6">
+    <button id="btnSimularTemp" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">▶️ Iniciar simulación</button>
+    <button id="btnPararTemp" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">⏹️ Parar</button>
+    <p id="estadoSimulacionTemp" class="ml-4 font-semibold text-yellow-600"></p>
+  </div>
+
+  <!-- Visualización -->
+<div class="bg-white p-6 rounded-lg shadow mb-6">
+  <h2 class="text-xl font-semibold mb-4">📈 Evolución de la temperatura</h2>
+  <div class="w-full overflow-x-auto">
+    <canvas id="graficoTemp" class="w-full h-[400px]"></canvas>
+  </div>
+</div>
+
+
+    <!-- Indicadores -->
+<div class="flex flex-row space-x-4 items-start">
+  <!-- Barra de temperatura -->
+  <div class="flex flex-col items-center">
+    <svg width="60" height="300" class="mb-2">
+      <rect width="40" height="300" y="0" x="10" fill="#eee" stroke="#ccc" stroke-width="2"/>
+      <rect id="tempRect" width="40" height="0" y="300" x="10" fill="#ffa500"/>
+    </svg>
+    <p class="text-center font-semibold text-sm" id="tempDisplay">--</p>
+  </div>
+
+  <!-- Resultados de la simulación -->
+  <div class="bg-gray-100 p-4 rounded-lg shadow text-sm space-y-1">
+    <p><strong>🌡️ Temperatura actual:</strong> <span id="currentTemp">--</span> °C</p>
+    <p><strong>🎯 Error actual:</strong> <span id="diffWithSetpointTemp">--</span> °C</p>
+    <p><strong>📈 Overshoot:</strong> <span id="overshootTemp">--</span> °C</p>
+    <p><strong>⏱️ Tiempo de establecimiento:</strong> <span id="settlingTimeTemp">--</span> s</p>
+    <p><strong>📏 Error en régimen permanente:</strong> <span id="steadyErrorTemp">--</span> °C</p>
+  </div>
+</div>
+
+  </div>
+</section>
+
+
+  </div>
+
+  <!-- Footer -->
+  <footer class="mt-10 text-center text-sm text-gray-500">
+    Powered by <strong>Nubetiza</strong>
+  </footer>
+
+<script>
+  const estadoSimulacionTemp = document.getElementById('estadoSimulacionTemp');
+  const chartTemp = new Chart(document.getElementById('graficoTemp').getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [
+        { label: 'Temperatura (°C)', data: [], borderColor: 'orange', fill: false },
+        { label: 'Setpoint', data: [], borderColor: 'red', borderDash: [5, 5], fill: false }
+      ]
+    },
+    options: {
+      responsive: true,
+      animation: false,
+      scales: { y: { min: 0, max: 100 } }
+    }
+  });
+
+  const tempRect = document.getElementById('tempRect');
+  let wsTemp;
+  let intervaloTemp;
+  let maxTemp = 0;
+  let dentroMargenCounterTemp = 0;
+  let umbralEstablecimientoTemp = Math.ceil({{ tiempo_establecido_temp }} / 0.1);
+
+  function actualizarSlidersTemp() {
+    ['temperatura_inicial', 'setpoint_temp', 'kp_temp', 'ki_temp', 'kd_temp'].forEach(id => {
+      document.getElementById(id).addEventListener('input', () => {
+        document.getElementById(id + 'Value').textContent = document.getElementById(id).value;
+      });
+    });
+  }
+
+  actualizarSlidersTemp();
+
+  document.getElementById('btnSimularTemp').onclick = () => {
+    chartTemp.data.labels = [];
+    chartTemp.data.datasets[0].data = [];
+    chartTemp.data.datasets[1].data = [];
+    chartTemp.update();
+
+    const temperatura_inicial = parseFloat(document.getElementById('temperatura_inicial').value);
+    const setpoint = parseFloat(document.getElementById('setpoint_temp').value);
+
+    let overshootTemp = 0;
+    let maxTempSubida = temperatura_inicial;
+    let minTempBajada = temperatura_inicial;
+    dentroMargenCounterTemp = 0;
+    document.getElementById("overshootTemp").textContent = "--";
+
+    if (wsTemp) wsTemp.close();
+
+    wsTemp = new WebSocket(`ws://${location.host}/ws/temp`);
+    wsTemp.onopen = () => {
+      estadoSimulacionTemp.textContent = "Simulando...";
+      estadoSimulacionTemp.classList.remove("text-green-600");
+      estadoSimulacionTemp.classList.add("text-yellow-600");
+
+      const datos = {
+        iniciar: true,
+        temperatura_inicial: temperatura_inicial,
+        setpoint: setpoint,
+        kp: parseFloat(document.getElementById('kp_temp').value),
+        ki: parseFloat(document.getElementById('ki_temp').value),
+        kd: parseFloat(document.getElementById('kd_temp').value)
+      };
+      wsTemp.send(JSON.stringify(datos));
+      intervaloTemp = setInterval(() => wsTemp.send(JSON.stringify({})), 100);
+    };
+
+    wsTemp.onmessage = (event) => {
+  let datos;
+  try {
+    datos = JSON.parse(event.data);
+  } catch (e) {
+    console.warn("No se pudo parsear:", event.data);
+    return;
+  }
+
+  if (!datos.temperatura || typeof datos.temperatura !== "number") {
+    console.warn("Temperatura inválida:", datos);
+    return;
+  }
+
+  const temperatura = datos.temperatura;
+  const sp = parseFloat(document.getElementById('setpoint_temp').value);
+
+  document.getElementById("currentTemp").textContent = temperatura.toFixed(2);
+  document.getElementById("diffWithSetpointTemp").textContent = (temperatura - sp).toFixed(2);
+  
+      if (temperatura_inicial < sp) {
+        if (temperatura > maxTempSubida) maxTempSubida = temperatura;
+        document.getElementById("overshootTemp").textContent = (Math.max(0, maxTempSubida - sp)).toFixed(2);
+      } else {
+        if (temperatura < minTempBajada) minTempBajada = temperatura;
+        document.getElementById("overshootTemp").textContent = (Math.max(0, sp - minTempBajada)).toFixed(2);
+      }
+
+      chartTemp.data.labels.push('');
+      chartTemp.data.datasets[0].data.push(temperatura);
+      chartTemp.data.datasets[1].data.push(sp);
+      chartTemp.update();
+
+      tempRect.setAttribute("y", 290 - (temperatura * 2.8));
+      tempRect.setAttribute("height", temperatura * 2.8);
+      document.getElementById("tempDisplay").textContent = `${temperatura.toFixed(1)} °C`;
+
+      document.getElementById("steadyErrorTemp").textContent = (temperatura - sp).toFixed(2);
+
+      if (Math.abs(temperatura - sp) < {{ error_permitido_temp }}) {
+        dentroMargenCounterTemp++;
+        if (dentroMargenCounterTemp >= umbralEstablecimientoTemp) {
+          estadoSimulacionTemp.textContent = "Estabilizado ✅";
+          estadoSimulacionTemp.classList.remove("text-yellow-600");
+          estadoSimulacionTemp.classList.add("text-green-600");
+
+          wsTemp.close();
+          document.getElementById("settlingTimeTemp").textContent = (chartTemp.data.labels.length * 0.1).toFixed(2);
+        }
+      } else {
+        dentroMargenCounterTemp = 0;
+      }
+    };
+
+    wsTemp.onclose = () => clearInterval(intervaloTemp);
+  };
+
+  document.getElementById('btnPararTemp').onclick = () => {
+    estadoSimulacionTemp.textContent = "";
+    estadoSimulacionTemp.classList.remove("text-yellow-600", "text-green-600");
+    if (wsTemp) wsTemp.close();
+  };
+</script>
+
+</body>
+</html>

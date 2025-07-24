@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Fundamentos de Control - UGR</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+
+  <div class="max-w-4xl mx-auto p-6 flex-grow">
+
+    <!-- Logo -->
+    <div class="flex justify-center mb-6">
+      <img src="https://secretariageneral.ugr.es/sites/webugr/secretariageneral/public/inline-files/UGR-MARCA-01-monocromo.png" alt="UGR Logo" class="h-48">
+    </div>
+
+    <!-- Cabecera -->
+    <h1 class="text-3xl font-bold text-center text-gray-800 mb-2">Fundamentos de Control</h1>
+    <p class="text-center text-gray-600 mb-4">Curso académico 2025 / 2026</p>
+    <p class="text-center text-sm text-gray-500 mb-6">Profesor responsable: <strong>Carlos Márquez González</strong></p>
+
+    <!-- Información académica -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-6 rounded-xl shadow mb-8">
+      <div>
+        <p><strong>Titulación:</strong> Grado en Ingeniería Electrónica Industrial</p>
+        <p><strong>Curso:</strong> Segundo</p>
+        <p><strong>Semestre:</strong> Segundo</p>
+        <p><strong>Tipo:</strong> Obligatoria</p>
+      </div>
+      <div>
+        <p><strong>Centro:</strong> Facultad de Ciencias</p>
+        <p><strong>Departamento:</strong> Electrónica y Tecnología de Computadores</p>
+      </div>
+    </div>
+
+<!-- Selección de prácticas -->
+<h2 class="text-xl font-semibold text-gray-800 mb-4">Selecciona una práctica</h2>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+  <!-- Práctica 1 -->
+  <a href="/practica/pid" class="block p-6 bg-white rounded-xl shadow hover:shadow-lg transition">
+    <h3 class="text-lg font-semibold">⚙️ Práctica 1: Control PID de nivel</h3>
+    <p class="text-sm text-gray-600 mt-2">Sintoniza un controlador PID y comprueba su efecto sobre el nivel del tanque.</p>
+  </a>
+
+  <!-- Práctica 2 -->
+  <a href="/practica/temp" class="block p-6 bg-white rounded-xl shadow hover:shadow-lg transition">
+    <h3 class="text-lg font-semibold">🔥 Práctica 2: Control PID de temperatura</h3>
+    <p class="text-sm text-gray-600 mt-2">Simula el control de temperatura de un recinto térmico con retardo utilizando PID.</p>
+  </a>
+
+</div>
+
+
+  </div>
+
+  <!-- Footer -->
+  <footer class="bg-gray-800 text-white text-center py-4">
+    <p class="text-sm">Powered by <span class="font-semibold"><a href="https://nubetiza.com">Nubetiza</a> </span></p>
+  </footer>
+</body>
+</html>
